@@ -14,6 +14,7 @@
   --glow-color: rgba(255, 193, 7, 0.6);
 }
 
+/* ---------- CSS RESET & BASE ---------- */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -21,12 +22,23 @@
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
 }
 
-html,
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100%;
+}
+
 body {
   height: 100%;
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s;
+}
+
+*:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
 }
 
 .frame {
@@ -61,6 +73,7 @@ button {
   font-family: inherit;
 }
 
+/* ---------- UTILITY CLASSES ---------- */
 .content {
   flex: 1;
   display: flex;
@@ -81,6 +94,31 @@ button {
   color: var(--text-primary);
   cursor: pointer;
   z-index: 50;
+}
+
+/* ---------- AUTH PAGES ---------- */
+#loginPage,
+#registerPage,
+#forgotPasswordPage,
+#changePasswordPage {
+  --bg-primary: #F8F4E5 !important;
+  --bg-secondary: #FFFFFF !important;
+  --text-primary: #2C1810 !important;
+  --text-secondary: #8B7355 !important;
+  --accent-color: #FFC107 !important;
+  --accent-secondary: #FFB300 !important;
+  --border-color: #E6D7C4 !important;
+  --card-bg: #FFFFFF !important;
+  --shadow-color: rgba(77, 53, 32, 0.08) !important;
+  --glow-color: rgba(255, 193, 7, 0.6) !important;
+  padding-top: 80px;
+}
+
+#loginPage.content,
+#registerPage.content,
+#forgotPasswordPage.content,
+#changePasswordPage.content {
+  background: #F8F4E5 !important;
 }
 
 .auth-area {
@@ -223,6 +261,7 @@ select:focus {
   margin-bottom: 8px;
 }
 
+/* ---------- DASHBOARD ---------- */
 .dashboard-page {
   flex: 1;
   padding: 18px;
@@ -252,6 +291,7 @@ select:focus {
   padding: 8px 12px;
   border-radius: 12px;
   background: var(--card-bg);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 20px var(--shadow-color);
   border: 2px solid var(--border-color);
@@ -341,6 +381,7 @@ select:focus {
   background: var(--card-bg);
 }
 
+/* ---------- SIDEBAR ---------- */
 .sidebar {
   position: fixed;
   left: 12px;
@@ -415,6 +456,7 @@ select:focus {
   transform: translateY(-2px);
 }
 
+/* ---------- POP PANEL ---------- */
 .pop-panel {
   position: fixed;
   right: 12px;
@@ -460,7 +502,7 @@ select:focus {
   border-color: var(--accent-secondary);
 }
 
-/* ================== FILTER BAR ================== */
+/* ---------- FILTER BAR ---------- */
 .filter-bar {
   background: var(--card-bg);
   border-radius: 12px;
@@ -524,7 +566,7 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
 }
 
-/* ================== DASHBOARD STATS ================== */
+/* ---------- DASHBOARD STATS ---------- */
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -542,6 +584,7 @@ select:focus {
   box-shadow: 0 4px 12px var(--shadow-color);
   border: 2px solid var(--border-color);
   transition: transform 0.3s;
+  will-change: transform;
 }
 
 .stat-card:hover {
@@ -558,6 +601,11 @@ select:focus {
   background: var(--bg-primary);
   border-radius: 50%;
   border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+  animation: bounce 0.5s ease;
 }
 
 .stat-content {
@@ -577,13 +625,25 @@ select:focus {
   font-weight: 600;
 }
 
-/* ================== TASK WITH CHECKBOX ================== */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* ---------- TASKS ---------- */
 .tasks-container {
   margin-top: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding-bottom: 160px;
+}
+
+.swipe-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  margin-bottom: 12px;
 }
 
 .task-surface {
@@ -600,6 +660,8 @@ select:focus {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  will-change: transform;
+  user-select: none;
 }
 
 .task-surface:hover {
@@ -621,6 +683,7 @@ select:focus {
   flex-shrink: 0;
   transition: all 0.3s;
   margin-top: 4px;
+  animation: bounceIn 0.5s ease;
 }
 
 .task-checkbox.checked {
@@ -633,6 +696,10 @@ select:focus {
   color: white;
   font-weight: bold;
   font-size: 14px;
+}
+
+.task-surface.completed .task-checkbox {
+  animation: completeCheck 0.5s ease;
 }
 
 .task-content {
@@ -710,6 +777,58 @@ select:focus {
   color: #ef6c00;
 }
 
+.priority {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease;
+}
+
+.priority.High {
+  background: linear-gradient(135deg, #FF9800, #FF5722);
+  border-color: #F57C00;
+  animation: pulsePriority 2s infinite;
+}
+
+.priority.Medium {
+  background: linear-gradient(135deg, #FFC107, #FF9800);
+  border-color: #FFA000;
+}
+
+.priority.Low {
+  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+  border-color: #FFD54F;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulsePriority {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes completeCheck {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3) rotate(15deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* ---------- ADD TASK BUTTON ---------- */
 .add-task-btn {
   position: fixed;
   right: 18px;
@@ -728,6 +847,7 @@ select:focus {
   transition: all .3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 120;
   animation: pulse-glow 2s infinite alternate;
+  will-change: transform;
 }
 
 .add-task-btn:hover {
@@ -753,6 +873,7 @@ select:focus {
   }
 }
 
+/* ---------- TASK MODALS ---------- */
 .backdrop {
   position: fixed;
   left: 0;
@@ -760,6 +881,7 @@ select:focus {
   top: 0;
   bottom: 0;
   background: rgba(42, 28, 16, 0.5);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   z-index: 110;
   display: none;
@@ -884,6 +1006,7 @@ select:focus {
   text-align: center;
   color: #FFFFFF;
   transition: all .2s;
+  margin-bottom: 8px;
 }
 
 .task-back:hover {
@@ -892,6 +1015,7 @@ select:focus {
   transform: translateY(-2px);
 }
 
+/* ---------- EDIT MODAL ---------- */
 .edit-modal {
   position: fixed;
   left: 0;
@@ -963,15 +1087,6 @@ select:focus {
   transform: translateY(-2px);
 }
 
-.profile-circle {
-  width: 130px !important;
-  height: 130px !important;
-  border-radius: 50% !important;
-  border: 4px solid var(--accent-color);
-  overflow: hidden;
-  background: var(--bg-primary);
-}
-
 .close-sidebar-btn {
   position: absolute;
   top: 10px;
@@ -994,6 +1109,7 @@ select:focus {
   transform: translateY(-2px);
 }
 
+/* ---------- PROFILE PAGE ---------- */
 .profile-page {
   position: fixed;
   inset: 0;
@@ -1012,6 +1128,7 @@ select:focus {
   max-width: 520px;
   margin: 32px auto 48px;
   background: var(--card-bg);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 2px solid var(--border-color);
   border-radius: 16px;
@@ -1124,9 +1241,10 @@ select:focus {
 
 .stat-item {
   background: var(--bg-primary);
-  padding: 15px;
+  padding: 9px;
   border-radius: 10px;
   border: 1px solid var(--border-color);
+  margin-bottom: 5px;
 }
 
 .stat-item h4 {
@@ -1169,6 +1287,7 @@ select:focus {
   border-color: var(--accent-secondary);
 }
 
+/* ---------- EDIT PROFILE ---------- */
 .edit-profile-page {
   position: fixed;
   inset: 0;
@@ -1187,6 +1306,7 @@ select:focus {
   max-width: 520px;
   margin: 32px auto 48px;
   background: var(--card-bg);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border: 2px solid var(--border-color);
   border-radius: 16px;
@@ -1295,184 +1415,11 @@ select:focus {
   border-color: var(--accent-secondary);
 }
 
-.muted {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 16px;
-  width: 100%;
-  font-size: 18px;
-  color: var(--text-secondary);
-}
-
-
-/* ================== ABOUT & PRIVACY PAGE IMPROVEMENTS ================== */
-.about-content,
-.privacy-content {
-  max-width: 780px;
-  margin: 32px auto;
-  padding: 0 24px 48px;
-  line-height: 1.7;
-  font-size: 17px;
-  color: var(--text-primary);
-  text-align: left;
-}
-
-.about-content h3,
-.privacy-content h3 {
-  font-size: 28px;
-  margin: 32px 0 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  padding-bottom: 12px;
-  border-bottom: 3px solid var(--accent-color);
-  text-align: left;
-}
-
-.about-content h4,
-.privacy-content h4 {
-  font-size: 20px;
-  margin: 28px 0 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  opacity: 0.92;
-  text-align: left;
-}
-
-.about-content p,
-.privacy-content p {
-  margin-bottom: 16px;
-  text-align: center;
-  line-height: 1.7;
-}
-
-.about-content ul,
-.privacy-content ul {
-  margin-left: 24px;
-  margin-bottom: 20px;
-  list-style: disc;
-  color: var(--text-primary);
-  text-align: left;
-}
-
-.about-content ol,
-.privacy-content ol {
-  margin-left: 24px;
-  margin-bottom: 20px;
-  list-style: decimal;
-  color: var(--text-primary);
-  text-align: left;
-}
-
-.about-content li,
-.privacy-content li {
-  margin-bottom: 10px;
-  line-height: 1.6;
-  text-align: left;
-}
-
-.about-content strong,
-.privacy-content strong {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.about-content .copyright,
-.privacy-content .copyright {
-  text-align: center;
-  margin-top: 48px;
-  font-size: 14px;
-  opacity: 0.7;
-  color: var(--text-secondary);
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-}
-
-.about-content .copyright small,
-.privacy-content .copyright small {
-  display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  opacity: 0.6;
-}
-
-/* Improve readability with better spacing */
-.about-content > *:first-child,
-.privacy-content > *:first-child {
-  margin-top: 0;
-}
-
-.about-content > *:last-child,
-.privacy-content > *:last-child {
-  margin-bottom: 0;
-}
-
-/* Add some visual hierarchy */
-.about-content p strong,
-.privacy-content p strong {
-  color: var(--accent-color);
-}
-
-/* Better list styling */
-.about-content ul ul,
-.privacy-content ul ul {
-  margin-left: 20px;
-  margin-top: 8px;
-  list-style: circle;
-}
-
-.about-content ul li,
-.privacy-content ul li {
-  padding-left: 8px;
-}
-
-/* Improve heading spacing */
-.about-content h4 + p,
-.privacy-content h4 + p {
-  margin-top: 8px;
-}
-
-.about-content h3 + p,
-.privacy-content h3 + p {
-  margin-top: 12px;
-}
-
-/* Make lists more readable */
-.about-content ul li::marker,
-.privacy-content ul li::marker {
-  color: var(--accent-color);
-}
-
-/* Add some padding to lists for better mobile experience */
-@media screen and (max-width: 480px) {
-  .about-content,
-  .privacy-content {
-    padding: 0 16px 32px;
-    font-size: 16px;
-  }
-  
-  .about-content h3,
-  .privacy-content h3 {
-    font-size: 24px;
-  }
-  
-  .about-content h4,
-  .privacy-content h4 {
-    font-size: 18px;
-  }
-  
-  .about-content ul,
-  .privacy-content ul,
-  .about-content ol,
-  .privacy-content ol {
-    margin-left: 20px;
-  }
-}
-
-
+/* ---------- ABOUT & PRIVACY PAGES ---------- */
 .about-page,
 .privacy-page,
-.settings-page {
+.settings-page,
+.trash-page {
   position: fixed;
   inset: 0;
   background: var(--bg-primary);
@@ -1484,13 +1431,15 @@ select:focus {
 
 .about-page.show,
 .privacy-page.show,
-.settings-page.show {
+.settings-page.show,
+.trash-page.show {
   display: block !important;
 }
 
 .about-header,
 .privacy-header,
-.settings-header {
+.settings-header,
+.trash-header {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1502,7 +1451,8 @@ select:focus {
 
 .about-header h2,
 .privacy-header h2,
-.settings-header h2 {
+.settings-header h2,
+.trash-header h2 {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -1510,61 +1460,108 @@ select:focus {
 
 .about-content,
 .privacy-content,
-.settings-content {
+.settings-content,
+.trash-content {
   max-width: 780px;
   margin: 32px auto;
   padding: 0 24px 48px;
   line-height: 1.7;
   font-size: 17px;
   color: var(--text-primary);
+  text-align: left;
 }
 
 .about-content h3,
 .privacy-content h3,
-.settings-content h3 {
+.settings-content h3,
+.trash-content h3 {
   font-size: 28px;
-  margin: 32px 0 12px;
-  text-align: center;
+  margin: 32px 0 20px;
   font-weight: 700;
   color: var(--text-primary);
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--accent-color);
 }
 
 .about-content h4,
 .privacy-content h4,
-.settings-content h4 {
+.settings-content h4,
+.trash-content h4 {
   font-size: 20px;
-  margin: 28px 0 10px;
+  margin: 28px 0 15px;
   font-weight: 600;
   color: var(--text-primary);
   opacity: 0.92;
 }
 
-.about-content ul {
-  margin-left: 20px;
+.about-content p,
+.privacy-content p,
+.settings-content p,
+.trash-content p {
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+
+.about-content ul,
+.privacy-content ul,
+.settings-content ul,
+.trash-content ul {
+  margin-left: 24px;
+  margin-bottom: 20px;
   list-style: disc;
   color: var(--text-primary);
 }
 
-.settings-content button {
-  margin-top: 12px;
-  background: var(--accent-color);
+.about-content ol,
+.privacy-content ol,
+.settings-content ol,
+.trash-content ol {
+  margin-left: 24px;
+  margin-bottom: 20px;
+  list-style: decimal;
   color: var(--text-primary);
-  border: 2px solid var(--accent-secondary);
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.settings-content button:hover {
-  background: var(--accent-secondary);
-  border-color: var(--accent-secondary);
-  transform: translateY(-2px);
+.about-content li,
+.privacy-content li,
+.settings-content li,
+.trash-content li {
+  margin-bottom: 10px;
+  line-height: 1.6;
 }
 
+.about-content strong,
+.privacy-content strong,
+.settings-content strong,
+.trash-content strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.about-content .copyright,
+.privacy-content .copyright,
+.settings-content .copyright,
+.trash-content .copyright {
+  text-align: center;
+  margin-top: 48px;
+  font-size: 14px;
+  opacity: 0.7;
+  color: var(--text-secondary);
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.about-content .copyright small,
+.privacy-content .copyright small,
+.settings-content .copyright small,
+.trash-content .copyright small {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* ---------- SETTINGS PAGE ---------- */
 .settings-section {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -1670,6 +1667,14 @@ select:focus {
   transform: translateY(-2px);
 }
 
+.setting-info {
+  color: var(--text-secondary);
+  font-size: 15px;
+  text-align: right;
+  min-width: 220px;
+}
+
+/* ---------- THEME PREVIEWS ---------- */
 .theme-preview-container {
   display: flex;
   gap: 15px;
@@ -1739,583 +1744,48 @@ select:focus {
   background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
 }
 
-/* Force auth pages to always use light theme */
-#loginPage,
-#registerPage,
-#forgotPasswordPage,
-#changePasswordPage {
-  --bg-primary: #F8F4E5 !important;
-  --bg-secondary: #FFFFFF !important;
-  --text-primary: #2C1810 !important;
-  --text-secondary: #8B7355 !important;
-  --accent-color: #FFC107 !important;
-  --accent-secondary: #FFB300 !important;
-  --border-color: #E6D7C4 !important;
-  --card-bg: #FFFFFF !important;
-  --shadow-color: rgba(77, 53, 32, 0.08) !important;
-  --glow-color: rgba(255, 193, 7, 0.6) !important;
-}
-
-/* Ensure auth pages have white backgrounds */
-#loginPage.content,
-#registerPage.content,
-#forgotPasswordPage.content,
-#changePasswordPage.content {
-  background: #F8F4E5 !important;
-}
-
-/* Style for the container div */
-.auth-area {
-  background: #FFFFFF !important;
-  color: #2C1810 !important;
-}
-
-/* Ensure text colors in auth pages stay consistent */
-#loginPage .welcome,
-#registerPage .welcome,
-#forgotPasswordPage .welcome,
-#changePasswordPage .welcome {
-  color: #2C1810 !important;
-}
-
-#loginPage input,
-#loginPage textarea,
-#loginPage select,
-#registerPage input,
-#registerPage textarea,
-#registerPage select,
-#forgotPasswordPage input,
-#forgotPasswordPage textarea,
-#forgotPasswordPage select,
-#changePasswordPage input,
-#changePasswordPage textarea,
-#changePasswordPage select {
-  background: #FFFFFF !important;
-  color: #2C1810 !important;
-  border-color: #E6D7C4 !important;
-}
-
-#loginPage .link,
-#registerPage .link,
-#forgotPasswordPage .link,
-#changePasswordPage .link {
-  color: #FFC107 !important;
-}
-
-#loginPage .remember-me,
-#registerPage .remember-me,
-#forgotPasswordPage .remember-me,
-#changePasswordPage .remember-me {
-  color: #2C1810 !important;
-}
-
-#loginPage .muted,
-#registerPage .muted,
-#forgotPasswordPage .muted,
-#changePasswordPage .muted {
-  color: #8B7355 !important;
-}
-
-/* Keep Google buttons consistent */
-#loginPage .google-btn,
-#registerPage .google-btn,
-#forgotPasswordPage .google-btn,
-#changePasswordPage .google-btn {
-  background: #FFFFFF !important;
-  color: #2C1810 !important;
-  border-color: #E6D7C4 !important;
-}
-
-#loginPage .google-btn:hover,
-#registerPage .google-btn:hover,
-#forgotPasswordPage .google-btn:hover,
-#changePasswordPage .google-btn:hover {
-  border-color: #FFC107 !important;
-  background: #F8F4E5 !important;
-}
-
-/* Ensure the frame background stays consistent */
-#loginPage ~ .frame,
-#registerPage ~ .frame,
-#forgotPasswordPage ~ .frame,
-#changePasswordPage ~ .frame {
-  background: #F8F4E5 !important;
-}
-
-/* Logo should keep its color */
-#loginPage .logo-top-left,
-#registerPage .logo-top-left,
-#forgotPasswordPage .logo-top-left,
-#changePasswordPage .logo-top-left {
-  color: #2C1810 !important;
-}
-
-#changePasswordPage .content {
-  max-width: 420px;
-  margin: 0 auto;
-}
-
-#changePasswordPage .welcome {
-  font-size: 24px;
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-#changePasswordPage .password-wrapper {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-#changePasswordPage .toggle-password {
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  font-size: 20px;
-  color: var(--text-secondary);
-}
-
-#changePasswordPage input {
-  width: 100%;
-  padding: 14px 45px 14px 14px;
-  font-size: 16px;
-}
-
-#changePasswordPage .btn-primary {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.setting-info {
-  color: var(--text-secondary);
-  font-size: 15px;
-  text-align: right;
-  min-width: 220px;
-}
-
-.copyright {
-  text-align: center;
-  margin-top: 48px;
-  font-size: 14px;
-  opacity: 0.7;
-  color: var(--text-secondary);
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-}
-
-.priority {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.priority.High {
-  background: linear-gradient(135deg, #FF9800, #FF5722);
-  border-color: #F57C00;
-}
-
-.priority.Medium {
-  background: linear-gradient(135deg, #FFC107, #FF9800);
-  border-color: #FFA000;
-}
-
-.priority.Low {
-  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
-  border-color: #FFD54F;
-}
-
-.swipe-wrap {
-  position: relative;
-  overflow: hidden;
-  border-radius: 14px;
-  margin-bottom: 12px;
-}
-
-.delete-bg {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, #FF9800, #F57C00);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 24px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.delete-bg span {
-  font-size: 24px;
-  color: #FFFFFF;
-  transform: scale(0.8);
-  transition: transform 0.3s ease;
-}
-
-.task-surface {
-  background: var(--card-bg);
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 4px 20px var(--shadow-color);
-  position: relative;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  cursor: pointer;
-  border: 2px solid var(--border-color);
-}
-
-@media screen and (max-width: 480px) {
-  .setting-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .setting-item label {
-    min-width: 100%;
-  }
-  
-  .setting-item .setting-control {
-    width: 100%;
-    min-width: 100%;
-    justify-content: flex-start;
-  }
-  
-  .theme-preview-container {
-    justify-content: center;
-  }
-  
-  .theme-preview {
-    width: 70px;
-    height: 35px;
-  }
-  
-  .theme-preview::after {
-    font-size: 11px;
-    bottom: -22px;
-  }
-  
-  .settings-section {
-    padding: 20px;
-  }
-  
-  .profile-stats {
-    grid-template-columns: 1fr;
-  }
-  
-  .frame {
-    max-width: 100%;
-  }
-  
-  .filter-dropdowns {
-    flex-direction: column;
-  }
-  
-  .dashboard-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .stat-card:nth-child(3) {
-    grid-column: span 2;
-  }
-}
-
-
-
-/* Add this to your style.css file */
-
-/* Force auth pages to always use light theme */
-#loginPage,
-#registerPage,
-#forgotPasswordPage,
-#changePasswordPage {
-  --bg-primary: #F8F4E5 !important;
-  --bg-secondary: #FFFFFF !important;
-  --text-primary: #2C1810 !important;
-  --text-secondary: #8B7355 !important;
-  --accent-color: #FFC107 !important;
-  --accent-secondary: #FFB300 !important;
-  --border-color: #E6D7C4 !important;
-  --card-bg: #FFFFFF !important;
-  --shadow-color: rgba(77, 53, 32, 0.08) !important;
-  --glow-color: rgba(255, 193, 7, 0.6) !important;
-}
-
-/* Ensure auth pages have white backgrounds */
-#loginPage.content,
-#registerPage.content,
-#forgotPasswordPage.content,
-#changePasswordPage.content {
-  background: #F8F4E5 !important;
-}
-
-/* Style for the container div */
-.auth-area {
-  background: #FFFFFF !important;
-  color: #2C1810 !important;
-}
-
-/* Ensure text colors in auth pages stay consistent */
-#loginPage .welcome,
-#registerPage .welcome,
-#forgotPasswordPage .welcome,
-#changePasswordPage .welcome {
-  color: #2C1810 !important;
-}
-
-#loginPage input,
-#loginPage textarea,
-#loginPage select,
-#registerPage input,
-#registerPage textarea,
-#registerPage select,
-#forgotPasswordPage input,
-#forgotPasswordPage textarea,
-#forgotPasswordPage select,
-#changePasswordPage input,
-#changePasswordPage textarea,
-#changePasswordPage select {
-  background: #FFFFFF !important;
-  color: #2C1810 !important;
-  border-color: #E6D7C4 !important;
-}
-
-#loginPage .link,
-#registerPage .link,
-#forgotPasswordPage .link,
-#changePasswordPage .link {
-  color: #FFC107 !important;
-}
-
-#loginPage .remember-me,
-#registerPage .remember-me,
-#forgotPasswordPage .remember-me,
-#changePasswordPage .remember-me {
-  color: #2C1810 !important;
-}
-
-#loginPage .muted,
-#registerPage .muted,
-#forgotPasswordPage .muted,
-#changePasswordPage .muted {
-  color: #8B7355 !important;
-}
-
-/* Keep Google buttons consistent */
-#loginPage .google-btn,
-#registerPage .google-btn,
-#forgotPasswordPage .google-btn,
-#changePasswordPage .google-btn {
-  background: #FFFFFF !important;
-  color: #2C1810 !important;
-  border-color: #E6D7C4 !important;
-}
-
-#loginPage .google-btn:hover,
-#registerPage .google-btn:hover,
-#forgotPasswordPage .google-btn:hover,
-#changePasswordPage .google-btn:hover {
-  border-color: #FFC107 !important;
-  background: #F8F4E5 !important;
-}
-
-/* Ensure the frame background stays consistent */
-#loginPage ~ .frame,
-#registerPage ~ .frame,
-#forgotPasswordPage ~ .frame,
-#changePasswordPage ~ .frame {
-  background: #F8F4E5 !important;
-}
-
-/* Logo should keep its color */
-#loginPage .logo-top-left,
-#registerPage .logo-top-left,
-#forgotPasswordPage .logo-top-left,
-#changePasswordPage .logo-top-left {
-  color: #2C1810 !important;
-}
-
-
-
-
-/* ================== TRASH/ARCHIVE PAGE ================== */
-.trash-page {
-  position: fixed;
-  inset: 0;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  z-index: 400;
-  overflow-y: auto;
-  display: none;
-}
-
-.trash-page.show {
-  display: block !important;
-}
-
-.trash-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 18px 24px;
-  background: #2C1810;
-  color: white;
-  border-bottom: 2px solid var(--accent-color);
-}
-
-.trash-header h2 {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.trash-content {
-  max-width: 780px;
-  margin: 32px auto;
-  padding: 0 24px 48px;
-  line-height: 1.7;
-  font-size: 17px;
-  color: var(--text-primary);
-}
-
-.trash-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin: 20px 0;
-}
-
-.trash-actions {
-  display: flex;
-  gap: 12px;
-  margin: 20px 0;
-  justify-content: center;
-}
-
-.trash-actions button {
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid;
-  color: white;
-}
-
-.trash-actions button:hover {
-  transform: translateY(-2px);
-  opacity: 0.9;
-}
-
-/* Swipe indicators for archive */
-.swipe-indicator {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 20px;
-  opacity: 0.7;
-  transition: opacity 0.3s;
-}
-
+/* ---------- SWIPE ANIMATIONS ---------- */
+.delete-bg,
 .archive-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #4CAF50, #388E3C);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding-right: 24px;
   opacity: 0;
   transition: opacity 0.3s ease;
-}
-
-.archive-bg span {
-  font-size: 24px;
-  color: #FFFFFF;
-  transform: scale(0.8);
-  transition: transform 0.3s ease;
-}
-
-/* Task in archive styling */
-.task-archived {
-  opacity: 0.7;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--card-bg) 100%);
-}
-
-.task-archived .priority {
-  opacity: 0.6;
-}
-
-/* Swipe delete animation */
-@keyframes swipeLeft {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
-}
-
-@keyframes swipeRight {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
-
-
-/* ================== SWIPE ANIMATIONS ================== */
-.archive-bg {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, #4CAF50, #388E3C);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 24px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.archive-bg span {
-  font-size: 24px;
-  color: #FFFFFF;
-  transform: scale(0.8);
-  transition: transform 0.3s ease;
-}
-
-.archive-bg.archive-active {
-  opacity: 1;
-}
-
-.archive-bg.archive-active span {
-  animation: archivePulse 0.5s ease-in-out;
 }
 
 .delete-bg {
-  position: absolute;
-  inset: 0;
   background: linear-gradient(90deg, #FF9800, #F57C00);
-  display: flex;
-  align-items: center;
   justify-content: flex-start;
   padding-left: 24px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
 }
 
-.delete-bg span {
+.archive-bg {
+  background: linear-gradient(90deg, #4CAF50, #388E3C);
+  justify-content: flex-end;
+  padding-right: 24px;
+}
+
+.delete-bg span,
+.archive-bg span {
   font-size: 24px;
   color: #FFFFFF;
   transform: scale(0.8);
   transition: transform 0.3s ease;
 }
 
-.delete-bg.delete-active {
+.delete-bg.delete-active,
+.archive-bg.archive-active {
   opacity: 1;
 }
 
 .delete-bg.delete-active span {
   animation: deletePulse 0.5s ease-in-out;
+}
+
+.archive-bg.archive-active span {
+  animation: archivePulse 0.5s ease-in-out;
 }
 
 @keyframes archivePulse {
@@ -2332,7 +1802,6 @@ select:focus {
   100% { transform: scale(1) rotate(0deg); }
 }
 
-/* Swipe direction indicators */
 .swipe-indicator {
   position: absolute;
   top: 50%;
@@ -2350,31 +1819,7 @@ select:focus {
   right: 10px;
 }
 
-.task-surface {
-  background: var(--card-bg);
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 4px 20px var(--shadow-color);
-  position: relative;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  cursor: pointer;
-  border: 2px solid var(--border-color);
-  user-select: none;
-}
-
-/* Swipe delete animation */
-@keyframes swipeLeft {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
-}
-
-@keyframes swipeRight {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
-
-
-/* ================== TUTORIAL OVERLAY ================== */
+/* ---------- TUTORIAL OVERLAY ---------- */
 .tutorial-overlay {
   position: fixed;
   top: 0;
@@ -2589,155 +2034,7 @@ select:focus {
   transform: scale(1.2);
 }
 
-/* Mobile-specific adjustments */
-@media screen and (max-width: 480px) {
-  .tutorial-overlay {
-    padding: 10px;
-  }
-  
-  .tutorial-content {
-    padding: 20px;
-    max-height: 90vh;
-  }
-  
-  .tutorial-header h2 {
-    font-size: 20px;
-  }
-  
-  .close-tutorial {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-  }
-  
-  .tutorial-step {
-    padding: 15px;
-  }
-  
-  .tutorial-step h3 {
-    font-size: 16px;
-  }
-  
-  .tutorial-step h3 span {
-    width: 24px;
-    height: 24px;
-    font-size: 13px;
-  }
-  
-  .tutorial-step p {
-    font-size: 14px;
-  }
-  
-  .tutorial-demo {
-    padding: 12px;
-    gap: 8px;
-  }
-  
-  .tutorial-icon {
-    font-size: 18px;
-    padding: 8px;
-    min-width: 44px;
-    min-height: 44px;
-  }
-  
-  .tutorial-arrow {
-    font-size: 16px;
-  }
-  
-  .tutorial-buttons {
-    flex-direction: column;
-    margin-top: 20px;
-  }
-  
-  .tutorial-btn {
-    padding: 12px;
-    font-size: 14px;
-  }
-  
-  /* For the first tutorial step with many icons */
-  .tutorial-demo:first-child {
-    gap: 6px;
-  }
-  
-  .tutorial-demo:first-child .tutorial-icon {
-    min-width: 40px;
-    min-height: 40px;
-    font-size: 16px;
-    padding: 6px;
-  }
-  
-  .tutorial-demo:first-child .tutorial-arrow {
-    font-size: 14px;
-  }
-}
-
-/* Extra small screens */
-@media screen and (max-width: 360px) {
-  .tutorial-content {
-    padding: 15px;
-  }
-  
-  .tutorial-header h2 {
-    font-size: 18px;
-  }
-  
-  .tutorial-step {
-    padding: 12px;
-  }
-  
-  .tutorial-step h3 {
-    font-size: 15px;
-  }
-  
-  .tutorial-demo {
-    gap: 5px;
-  }
-  
-  .tutorial-icon {
-    min-width: 36px;
-    min-height: 36px;
-    font-size: 16px;
-    padding: 6px;
-  }
-  
-  .tutorial-arrow {
-    font-size: 14px;
-  }
-  
-  /* Reduce icons in first step for very small screens */
-  .tutorial-demo:first-child {
-    flex-wrap: wrap;
-    justify-content: space-around;
-  }
-  
-  .tutorial-demo:first-child .tutorial-icon {
-    min-width: 35px;
-    min-height: 35px;
-    font-size: 14px;
-  }
-  
-  .tutorial-demo:first-child .tutorial-arrow {
-    display: none;
-  }
-}
-
-/* Fix for tutorial step 1 specifically (the one with many icons) */
-#tutorialSteps .tutorial-step:first-child .tutorial-demo {
-  flex-wrap: wrap;
-  justify-content: space-around;
-}
-
-#tutorialSteps .tutorial-step:first-child .tutorial-demo .tutorial-arrow {
-  display: none;
-}
-
-@media screen and (min-width: 481px) {
-  #tutorialSteps .tutorial-step:first-child .tutorial-demo .tutorial-arrow {
-    display: block;
-  }
-}
-
-/* ================== LOADING ANIMATION ================== */
+/* ---------- LOADING & EMPTY STATES ---------- */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -2787,7 +2084,6 @@ select:focus {
   50% { opacity: 0.5; }
 }
 
-/* ================== EMPTY STATE ANIMATIONS ================== */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -2822,41 +2118,6 @@ select:focus {
   line-height: 1.5;
 }
 
-/* ================== ANIMATED ICONS ================== */
-.task-checkbox {
-  animation: bounceIn 0.5s ease;
-}
-
-@keyframes bounceIn {
-  0% { transform: scale(0); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
-
-.task-surface.completed .task-checkbox {
-  animation: completeCheck 0.5s ease;
-}
-
-@keyframes completeCheck {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.3) rotate(15deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-.stat-icon {
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover .stat-icon {
-  animation: bounce 0.5s ease;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-/* ================== TASK COMPLETION ANIMATION ================== */
 .task-completed {
   position: relative;
   overflow: hidden;
@@ -2879,98 +2140,7 @@ select:focus {
   100% { transform: translateX(100%); }
 }
 
-/* ================== PRIORITY INDICATORS ================== */
-.priority-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  animation: fadeIn 0.5s ease;
-}
-
-.priority-badge.High {
-  background: linear-gradient(135deg, #FF9800, #FF5722);
-  color: white;
-  animation: pulsePriority 2s infinite;
-}
-
-.priority-badge.Medium {
-  background: linear-gradient(135deg, #FFC107, #FF9800);
-  color: var(--text-primary);
-}
-
-.priority-badge.Low {
-  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
-  color: var(--text-secondary);
-}
-
-@keyframes pulsePriority {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-
-
-
-/*All Device */
-
-/* ================== FIX LOGO OVERLAP ================== */
-
-/* Fix for all auth pages */
-#loginPage, #registerPage, #forgotPasswordPage, #changePasswordPage {
-  padding-top: 80px; /* Add space at top for logo */
-}
-
-/* Make logo smaller on very small screens */
-@media screen and (max-width: 360px) {
-  .logo-top-left {
-    font-size: 24px;
-    top: 12px;
-    left: 12px;
-  }
-  
-  #loginPage, #registerPage, #forgotPasswordPage, #changePasswordPage {
-    padding-top: 60px;
-  }
-}
-
-/* Fix for desktop (420px width) */
-@media screen and (min-width: 769px) {
-  .logo-top-left {
-    font-size: 28px;
-    top: 20px;
-    left: 30px;
-  }
-  
-  #loginPage, #registerPage, #forgotPasswordPage, #changePasswordPage {
-    padding-top: 80px;
-  }
-  
-  .auth-area {
-    margin-top: 40px !important;
-  }
-}
-
-/* Adjust welcome text spacing */
-.welcome {
-  margin-top: 10px;
-  margin-bottom: 20px;
-}
-
-
-
-/*--------------*/
-
-
-/* ================== REDESIGNED ABOUT PAGE STYLES ================== */
+/* ---------- REDESIGNED ABOUT PAGE ---------- */
 .app-version {
   background: var(--accent-color);
   color: white;
@@ -3012,6 +2182,7 @@ select:focus {
   align-items: flex-start;
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 12px var(--shadow-color);
+  animation: fadeInUp 0.6s ease forwards;
 }
 
 .section-icon {
@@ -3156,14 +2327,6 @@ select:focus {
   position: relative;
 }
 
-/* .support-list li:before {
-  content: '✓';
-  position: absolute;
-  left: 0;
-  color: var(--accent-color);
-  font-weight: bold;
-} */
-
 .developer-section {
   background: linear-gradient(135deg, var(--accent-color) 0%, rgba(255, 193, 7, 0.1) 100%);
   border: 2px solid var(--accent-color);
@@ -3201,7 +2364,7 @@ select:focus {
   font-size: 18px;
 }
 
-/* ================== REDESIGNED PRIVACY PAGE STYLES ================== */
+/* ---------- REDESIGNED PRIVACY PAGE ---------- */
 .policy-date {
   background: var(--accent-color);
   color: white;
@@ -3242,6 +2405,7 @@ select:focus {
   padding: 24px;
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 12px var(--shadow-color);
+  animation: fadeInUp 0.6s ease forwards;
 }
 
 .card-header {
@@ -3525,27 +2689,119 @@ select:focus {
   font-size: 13px;
 }
 
-/* ================== RESPONSIVE DESIGN ================== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- RESPONSIVE DESIGN ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @media screen and (max-width: 480px) {
-  .about-hero, .privacy-hero {
+  /* Touch target improvements */
+  button, 
+  .btn-icon,
+  .filter-tab,
+  .nav-item,
+  .pop-item {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .setting-item label {
+    min-width: 100%;
+  }
+  
+  .setting-item .setting-control {
+    width: 100%;
+    min-width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .theme-preview-container {
+    justify-content: center;
+  }
+  
+  .theme-preview {
+    width: 70px;
+    height: 35px;
+  }
+  
+  .theme-preview::after {
+    font-size: 11px;
+    bottom: -22px;
+  }
+  
+  .settings-section {
+    padding: 20px;
+  }
+  
+  .profile-stats,
+  .trash-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .frame {
+    max-width: 100%;
+  }
+  
+  .filter-dropdowns {
+    flex-direction: column;
+  }
+  
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .stat-card:nth-child(3) {
+    grid-column: span 2;
+  }
+  
+  .about-hero,
+  .privacy-hero {
     padding: 30px 16px;
   }
   
-  .about-logo, .privacy-icon {
+  .about-logo,
+  .privacy-icon {
     font-size: 36px;
   }
   
-  .about-tagline, .privacy-subtitle {
+  .about-tagline,
+  .privacy-subtitle {
     font-size: 16px;
   }
   
-  .about-section, .privacy-card {
+  .about-section,
+  .privacy-card {
     padding: 20px;
     flex-direction: column;
     gap: 16px;
   }
   
-  .section-icon, .card-icon {
+  .section-icon,
+  .card-icon {
     width: 50px;
     height: 50px;
     font-size: 24px;
@@ -3561,11 +2817,13 @@ select:focus {
     gap: 8px;
   }
   
-  .security-grid, .compliance-grid {
+  .security-grid,
+  .compliance-grid {
     grid-template-columns: 1fr;
   }
   
-  .app-version, .policy-date {
+  .app-version,
+  .policy-date {
     font-size: 8px;
     padding: 3px 8px;
   }
@@ -3580,76 +2838,198 @@ select:focus {
     font-size: 20px;
   }
   
-  .data-item, .security-item, .compliance-item, .contact-item {
+  .data-item,
+  .security-item,
+  .compliance-item,
+  .contact-item {
     padding: 12px;
   }
   
-  .data-icon, .security-icon, .compliance-icon {
+  .data-icon,
+  .security-icon,
+  .compliance-icon {
     width: 36px;
     height: 36px;
     font-size: 18px;
   }
+  
+  /* Tutorial mobile adjustments */
+  .tutorial-overlay {
+    padding: 10px;
+  }
+  
+  .tutorial-content {
+    padding: 20px;
+    max-height: 90vh;
+  }
+  
+  .tutorial-header h2 {
+    font-size: 20px;
+  }
+  
+  .close-tutorial {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .tutorial-step {
+    padding: 15px;
+  }
+  
+  .tutorial-step h3 {
+    font-size: 16px;
+  }
+  
+  .tutorial-step h3 span {
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+  }
+  
+  .tutorial-step p {
+    font-size: 14px;
+  }
+  
+  .tutorial-demo {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .tutorial-icon {
+    font-size: 18px;
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .tutorial-arrow {
+    font-size: 16px;
+  }
+  
+  .tutorial-buttons {
+    flex-direction: column;
+    margin-top: 20px;
+  }
+  
+  .tutorial-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
 }
 
-/* For tablets and larger phones */
 @media screen and (min-width: 481px) and (max-width: 768px) {
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .security-grid, .compliance-grid {
+  .security-grid,
+  .compliance-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Add smooth transitions */
-.about-section, .privacy-card, .feature-card,
-.data-item, .security-item, .compliance-item,
-.contact-item, .control-item {
-  transition: all 0.3s ease;
+@media screen and (max-width: 360px) {
+  .logo-top-left {
+    font-size: 24px;
+    top: 12px;
+    left: 12px;
+  }
+  
+  #loginPage,
+  #registerPage,
+  #forgotPasswordPage,
+  #changePasswordPage {
+    padding-top: 60px;
+  }
+  
+  .tutorial-content {
+    padding: 15px;
+  }
+  
+  .tutorial-header h2 {
+    font-size: 18px;
+  }
+  
+  .tutorial-step {
+    padding: 12px;
+  }
+  
+  .tutorial-step h3 {
+    font-size: 15px;
+  }
+  
+  .tutorial-demo {
+    gap: 5px;
+  }
+  
+  .tutorial-icon {
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 16px;
+    padding: 6px;
+  }
+  
+  .tutorial-arrow {
+    font-size: 14px;
+  }
 }
 
-.about-section:hover, .privacy-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px var(--shadow-color);
+@media screen and (min-width: 769px) {
+  .logo-top-left {
+    font-size: 28px;
+    top: 20px;
+    left: 30px;
+  }
+  
+  #loginPage,
+  #registerPage,
+  #forgotPasswordPage,
+  #changePasswordPage {
+    padding-top: 80px;
+  }
+  
+  .auth-area {
+    margin-top: 40px !important;
+  }
 }
 
-/* Add scrollbar styling */
-.about-content, .privacy-content {
+/* Custom scrollbars */
+.about-content,
+.privacy-content,
+.settings-content,
+.trash-content,
+.tutorial-content {
   scrollbar-width: thin;
   scrollbar-color: var(--accent-color) var(--border-color);
 }
 
-.about-content::-webkit-scrollbar, .privacy-content::-webkit-scrollbar {
+.about-content::-webkit-scrollbar,
+.privacy-content::-webkit-scrollbar,
+.settings-content::-webkit-scrollbar,
+.trash-content::-webkit-scrollbar,
+.tutorial-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.about-content::-webkit-scrollbar-track, .privacy-content::-webkit-scrollbar-track {
+.about-content::-webkit-scrollbar-track,
+.privacy-content::-webkit-scrollbar-track,
+.settings-content::-webkit-scrollbar-track,
+.trash-content::-webkit-scrollbar-track,
+.tutorial-content::-webkit-scrollbar-track {
   background: var(--bg-primary);
 }
 
-.about-content::-webkit-scrollbar-thumb, .privacy-content::-webkit-scrollbar-thumb {
+.about-content::-webkit-scrollbar-thumb,
+.privacy-content::-webkit-scrollbar-thumb,
+.settings-content::-webkit-scrollbar-thumb,
+.trash-content::-webkit-scrollbar-thumb,
+.tutorial-content::-webkit-scrollbar-thumb {
   background-color: var(--accent-color);
   border-radius: 3px;
 }
 
-/* Animation for section entrance */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.about-section, .privacy-card {
-  animation: fadeInUp 0.6s ease forwards;
-}
-
-/* Staggered animation for cards */
+/* Staggered animations */
 .about-section:nth-child(2) { animation-delay: 0.1s; }
 .about-section:nth-child(3) { animation-delay: 0.2s; }
 .about-section:nth-child(4) { animation-delay: 0.3s; }

@@ -456,7 +456,7 @@
       <div class="settings-section">
         <h3>Data & Privacy</h3>
 
-        <div class="setting-item">
+        <!-- <div class="setting-item">
           <label>Export Data</label>
           <div class="setting-control">
             <button onclick="
@@ -478,7 +478,74 @@
               Export All Data
             </button>
           </div>
-        </div>
+        </div> -->
+
+        <div class="setting-item">
+  <label>Export Data</label>
+  <div class="setting-control">
+    <button onclick="exportTasklyData()" class="setting-btn success">
+      Export All Data
+    </button>
+  </div>
+</div>
+
+<script>
+function exportTasklyData() {
+  try {
+    // Collect all data from localStorage
+    const data = {
+      tasks: JSON.parse(localStorage.getItem('tasklyTasks') || '[]'),
+      user: JSON.parse(localStorage.getItem('tasklyUser') || '{}'),
+      settings: {
+        theme: localStorage.getItem('tasklyTheme') || 'light',
+        // Add other settings if they exist
+        notifications: localStorage.getItem('tasklyNotifications'),
+        // Add any other settings keys you use
+      },
+      timestamp: new Date().toISOString(),
+      app: "Taskly"
+    };
+    
+    // Convert to JSON string
+    const jsonString = JSON.stringify(data, null, 2);
+    
+    // Create and trigger download
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `taskly-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); // Required for Firefox
+    a.click();
+    
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
+    // Show success message
+    showNotification('Data exported successfully! Check your downloads folder.', 'success');
+    
+  } catch (error) {
+    console.error('Export failed:', error);
+    showNotification('Export failed: ' + error.message, 'error');
+  }
+}
+
+// Helper function for notifications (if you don't have one)
+function showNotification(message, type = 'info') {
+  // If you have your own notification system, use it
+  if (typeof showToast === 'function') {
+    showToast(message, type);
+  } else if (typeof alert === 'function') {
+    alert(message);
+  } else {
+    console.log(`${type}: ${message}`);
+  }
+}
+</script>
 
         <div class="setting-item">
           <label>Show Tutorial Again</label>

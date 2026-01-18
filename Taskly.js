@@ -43,6 +43,435 @@ function getUserThemeKey() {
   return email ? `tasklyTheme_${email.replace(/[@.]/g, '_')}` : 'tasklyTheme_guest';
 }
 
+/* ================== NOTIFICATION SYSTEM ================== */
+let notificationSound = null;
+let notificationTimeout = null;
+let notificationAudioContext = null;
+let scheduledReminders = new Map(); // Store scheduled reminder timeouts
+
+// Initialize notification sound with better audio
+function initNotificationSound() {
+  try {
+    // Create a better notification sound using Web Audio API
+    notificationAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    notificationSound = {
+      play: function() {
+        if (notificationAudioContext.state === 'suspended') {
+          notificationAudioContext.resume();
+        }
+        
+        const oscillator1 = notificationAudioContext.createOscillator();
+        const oscillator2 = notificationAudioContext.createOscillator();
+        const gainNode = notificationAudioContext.createGain();
+        
+        oscillator1.connect(gainNode);
+        oscillator2.connect(gainNode);
+        gainNode.connect(notificationAudioContext.destination);
+        
+        // Create a pleasant two-tone notification
+        oscillator1.frequency.setValueAtTime(800, notificationAudioContext.currentTime);
+        oscillator1.frequency.setValueAtTime(1000, notificationAudioContext.currentTime + 0.1);
+        oscillator2.frequency.setValueAtTime(600, notificationAudioContext.currentTime);
+        oscillator2.frequency.setValueAtTime(800, notificationAudioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.3, notificationAudioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, notificationAudioContext.currentTime + 0.8);
+        
+        oscillator1.start();
+        oscillator2.start();
+        oscillator1.stop(notificationAudioContext.currentTime + 0.8);
+        oscillator2.stop(notificationAudioContext.currentTime + 0.8);
+      }
+    };
+  } catch (error) {
+    console.log('Web Audio API not supported, using HTML5 Audio fallback');
+    notificationSound = {
+      play: function() {
+        try {
+          // Create a base64 encoded simple beep sound
+          const beepSound = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
+          const audio = new Audio(beepSound);
+          audio.volume = 0.3;
+          audio.play().catch(e => console.log('Audio play failed:', e));
+        } catch (e) {
+          // If audio fails, just vibrate if supported
+          if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200, 100, 200]);
+          }
+        }
+      }
+    };
+  }
+}
+
+// Check if browser notifications are supported and permission granted
+function checkNotificationPermission() {
+  if (!("Notification" in window)) {
+    console.log("This browser does not support desktop notification");
+    return false;
+  }
+  
+  return Notification.permission === "granted";
+}
+
+// Request notification permission
+function requestNotificationPermission() {
+  if (!("Notification" in window)) {
+    return;
+  }
+  
+  if (Notification.permission === "default") {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        console.log("Notification permission granted");
+        localStorage.setItem('tasklyNotificationsEnabled', 'true');
+      }
+    });
+  }
+}
+
+// Create a browser notification
+function createBrowserNotification(title, body, icon = null) {
+  if (!checkNotificationPermission()) {
+    return;
+  }
+  
+  const options = {
+    body: body,
+    icon: icon || 'https://ui-avatars.com/api/?name=Taskly&background=FFC107&color=2C1810&size=128',
+    badge: 'https://ui-avatars.com/api/?name=T&background=FFC107&color=2C1810&size=32',
+    tag: 'taskly-reminder',
+    renotify: true,
+    requireInteraction: true,
+    vibrate: [200, 100, 200]
+  };
+  
+  const notification = new Notification(title, options);
+  
+  // Focus the window when notification is clicked
+  notification.onclick = () => {
+    window.focus();
+    notification.close();
+  };
+  
+  // Auto close after 10 seconds
+  setTimeout(() => {
+    notification.close();
+  }, 10000);
+  
+  return notification;
+}
+
+// Create a custom in-app notification
+function createInAppNotification(title, message, type = 'reminder') {
+  const notificationContainer = document.getElementById('notificationContainer');
+  if (!notificationContainer) return;
+  
+  // Remove old notifications
+  const existingNotifications = notificationContainer.querySelectorAll('.in-app-notification');
+  if (existingNotifications.length > 3) {
+    existingNotifications[0].remove();
+  }
+  
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `in-app-notification ${type}`;
+  notification.dataset.timestamp = Date.now();
+  
+  let icon = '⏰';
+  if (type === 'success') icon = '✅';
+  if (type === 'error') icon = '❌';
+  if (type === 'info') icon = 'ℹ️';
+  if (type === 'warning') icon = '⚠️';
+  
+  notification.innerHTML = `
+    <div class="notification-content">
+      <div class="notification-icon">${icon}</div>
+      <div class="notification-text">
+        <strong>${title}</strong>
+        <p>${message}</p>
+      </div>
+      <button class="notification-close">×</button>
+    </div>
+  `;
+  
+  // Add notification
+  notificationContainer.appendChild(notification);
+  
+  // Show with animation
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 10);
+  
+  // Close button
+  notification.querySelector('.notification-close').addEventListener('click', () => {
+    notification.classList.remove('show');
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  });
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.classList.remove('show');
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.remove();
+        }
+      }, 300);
+    }
+  }, 5000);
+  
+  return notification;
+}
+
+// Vibrate if supported (for mobile devices)
+function vibrateDevice(pattern = [200, 100, 200]) {
+  if (navigator.vibrate) {
+    navigator.vibrate(pattern);
+  }
+}
+
+// Play notification sound
+function playNotificationSound() {
+  if (notificationSound) {
+    notificationSound.play();
+  }
+}
+
+// Enhanced reminder notification function
+function showReminderNotification(taskTitle, reminderTime) {
+  const message = `Due at ${new Date(reminderTime).toLocaleString()}`;
+  
+  // 1. Browser notification (if permission granted)
+  if (checkNotificationPermission()) {
+    createBrowserNotification(`Task Reminder: ${taskTitle}`, message);
+  }
+  
+  // 2. In-app notification (always works)
+  createInAppNotification(`Reminder: ${taskTitle}`, message, 'reminder');
+  
+  // 3. Visual feedback on the dashboard
+  const dashboardTitle = document.querySelector('.dashboard-title');
+  if (dashboardTitle) {
+    const originalText = dashboardTitle.textContent;
+    dashboardTitle.textContent = '🔔 REMINDER! 🔔';
+    dashboardTitle.style.color = 'var(--accent-color)';
+    dashboardTitle.style.animation = 'pulse 1s infinite';
+    
+    setTimeout(() => {
+      dashboardTitle.textContent = originalText;
+      dashboardTitle.style.color = '';
+      dashboardTitle.style.animation = '';
+    }, 5000);
+  }
+  
+  // 4. Sound notification (play multiple times for emphasis)
+  playNotificationSound();
+  setTimeout(() => playNotificationSound(), 1000);
+  setTimeout(() => playNotificationSound(), 2000);
+  
+  // 5. Vibration (for mobile)
+  vibrateDevice([200, 100, 200, 100, 200]);
+  
+  // 6. Flash task in list if it exists
+  const tasks = document.querySelectorAll('.task-surface');
+  tasks.forEach(task => {
+    if (task.textContent.includes(taskTitle)) {
+      task.style.boxShadow = '0 0 0 3px var(--accent-color)';
+      task.style.animation = 'pulse-border 1s infinite';
+      
+      setTimeout(() => {
+        task.style.boxShadow = '';
+        task.style.animation = '';
+      }, 5000);
+    }
+  });
+  
+  // 7. Update notification panel
+  notifyPanelOpen();
+}
+
+// Initialize notification system
+function initNotificationSystem() {
+  initNotificationSound();
+  requestNotificationPermission();
+  
+  // Add CSS for in-app notifications
+  const style = document.createElement('style');
+  style.textContent = `
+    #notificationContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 350px;
+    }
+    
+    .in-app-notification {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      border-left: 5px solid var(--accent-color);
+      overflow: hidden;
+      transform: translateX(400px);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+      max-height: 0;
+    }
+    
+    .in-app-notification.show {
+      transform: translateX(0);
+      opacity: 1;
+      max-height: 200px;
+    }
+    
+    .in-app-notification.reminder {
+      border-left-color: var(--accent-color);
+    }
+    
+    .in-app-notification.success {
+      border-left-color: var(--success-color);
+    }
+    
+    .in-app-notification.error {
+      border-left-color: var(--danger-color);
+    }
+    
+    .in-app-notification.info {
+      border-left-color: #2196F3;
+    }
+    
+    .in-app-notification.warning {
+      border-left-color: #FF9800;
+    }
+    
+    .notification-content {
+      padding: 15px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    
+    .notification-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    
+    .notification-text {
+      flex: 1;
+    }
+    
+    .notification-text strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+    
+    .notification-text p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .notification-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    
+    .notification-close:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    @keyframes pulse-border {
+      0% { box-shadow: 0 0 0 3px var(--accent-color); }
+      50% { box-shadow: 0 0 0 6px rgba(255, 193, 7, 0.3); }
+      100% { box-shadow: 0 0 0 3px var(--accent-color); }
+    }
+    
+    /* Notification panel improvements */
+    .pop-item {
+      position: relative;
+      padding: 12px 35px 12px 15px;
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.2s;
+    }
+    
+    .pop-item:hover {
+      background: rgba(0,0,0,0.05);
+    }
+    
+    .pop-item.past {
+      opacity: 0.7;
+    }
+    
+    .reminder-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    
+    .reminder-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .clear-single-reminder {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--danger-color);
+      cursor: pointer;
+      font-size: 18px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    
+    .clear-single-reminder:hover {
+      background: rgba(244, 67, 54, 0.1);
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Create notification container if it doesn't exist
+  if (!document.getElementById('notificationContainer')) {
+    const container = document.createElement('div');
+    container.id = 'notificationContainer';
+    document.body.appendChild(container);
+  }
+}
+
 /* ================== PAGE SWITCHER ================== */
 function showPage(id) {
   // Don't add login/register pages to history (they're starting points)
@@ -509,12 +938,12 @@ function changePassword() {
   const user = JSON.parse(localStorage.getItem('tasklyUser') || '{}');
 
   if (!currentPass || !newPass || !confirmPass) {
-    alert('Please fill all fields');
+    createInAppNotification('Error', 'Please fill all fields', 'error');
     return;
   }
 
   if (currentPass !== user.pass) {
-    alert('Current password is incorrect');
+    createInAppNotification('Error', 'Current password is incorrect', 'error');
     return;
   }
 
@@ -526,7 +955,7 @@ function changePassword() {
   }
 
   if (newPass !== confirmPass) {
-    alert('New passwords do not match');
+    createInAppNotification('Error', 'New passwords do not match', 'error');
     return;
   }
 
@@ -540,7 +969,7 @@ function changePassword() {
     localStorage.setItem('tasklyUsers', JSON.stringify(users));
   }
 
-  alert('Password changed successfully!');
+  createInAppNotification('Success', 'Password changed successfully!', 'success');
   showPage('settingsPage');
 }
 
@@ -607,13 +1036,13 @@ document.getElementById('registerBtn').addEventListener('click', () => {
   const conf = document.getElementById('registerConfirm').value.trim();
 
   if (!fName || !lName || !email || !pass || !conf) {
-    alert('Please fill all fields');
+    createInAppNotification('Error', 'Please fill all fields', 'error');
     return;
   }
 
   const emailValidation = validateEmail(email);
   if (!emailValidation.isValid) {
-    alert(emailValidation.message);
+    createInAppNotification('Error', emailValidation.message, 'error');
     return;
   }
 
@@ -625,14 +1054,14 @@ document.getElementById('registerBtn').addEventListener('click', () => {
   }
 
   if (pass !== conf) {
-    alert('Passwords do not match');
+    createInAppNotification('Error', 'Passwords do not match', 'error');
     return;
   }
 
   const emailLower = email.toLowerCase();
 
   if (findUserByEmail(emailLower)) {
-    alert('An account with this email already exists. Please sign in instead.');
+    createInAppNotification('Error', 'An account with this email already exists. Please sign in instead.', 'error');
     return;
   }
 
@@ -664,8 +1093,11 @@ document.getElementById('registerBtn').addEventListener('click', () => {
   localStorage.setItem(trashKey, JSON.stringify([]));
   localStorage.setItem(themeKey, 'light');
 
-  alert('Registration successful! Please sign in.');
+  createInAppNotification('Success', 'Registration successful! Please sign in.', 'success');
   showPage('loginPage');
+  
+  // Set tutorial flag to false so tutorial will show on first login
+  localStorage.removeItem(`tasklyTutorialSeen_${emailLower.replace(/[@.]/g, '_')}`);
 });
 
 /* ---------- LOGIN ---------- */
@@ -674,13 +1106,13 @@ document.getElementById('loginBtn').addEventListener('click', () => {
   const pass = document.getElementById('loginPass').value.trim();
 
   if (!email || !pass) {
-    alert('Please enter email and password');
+    createInAppNotification('Error', 'Please enter email and password', 'error');
     return;
   }
 
   const emailValidation = validateEmail(email);
   if (!emailValidation.isValid) {
-    alert(emailValidation.message);
+    createInAppNotification('Error', emailValidation.message, 'error');
     return;
   }
 
@@ -688,7 +1120,7 @@ document.getElementById('loginBtn').addEventListener('click', () => {
   const user = findUserByEmail(emailLower);
 
   if (!user) {
-    alert('No account found with this email. Please register first.');
+    createInAppNotification('Error', 'No account found with this email. Please register first.', 'error');
     return;
   }
 
@@ -696,12 +1128,12 @@ document.getElementById('loginBtn').addEventListener('click', () => {
   if (user.isGoogleUser) {
     // Google users should use the password they created during Google signup
     if (user.pass !== pass) {
-      alert('Incorrect password. Google account users must use the password they created during signup.');
+      createInAppNotification('Error', 'Incorrect password. Google account users must use the password they created during signup.', 'error');
       return;
     }
   } else if (user.pass !== pass) {
     // Non-Google users
-    alert('Incorrect password. Please try again.');
+    createInAppNotification('Error', 'Incorrect password. Please try again.', 'error');
     return;
   }
 
@@ -734,7 +1166,17 @@ document.getElementById('loginBtn').addEventListener('click', () => {
     loadTasks();
     loadProfilePreview();
     startReminderTimers();
-    startTutorial();
+    
+    // Check if tutorial should be shown
+    const userKey = emailLower.replace(/[@.]/g, '_');
+    const tutorialSeen = localStorage.getItem(`tasklyTutorialSeen_${userKey}`);
+    
+    if (!tutorialSeen) {
+      // Show tutorial after a short delay
+      setTimeout(() => {
+        startTutorial();
+      }, 1000);
+    }
   }, 1500);
 });
 
@@ -743,13 +1185,13 @@ document.getElementById('resetPasswordBtn').addEventListener('click', () => {
   const email = document.getElementById('forgotEmail').value.trim();
 
   if (!email) {
-    alert('Please enter your email address');
+    createInAppNotification('Error', 'Please enter your email address', 'error');
     return;
   }
 
   const emailValidation = validateEmail(email);
   if (!emailValidation.isValid) {
-    alert(emailValidation.message);
+    createInAppNotification('Error', emailValidation.message, 'error');
     return;
   }
 
@@ -757,15 +1199,15 @@ document.getElementById('resetPasswordBtn').addEventListener('click', () => {
   const user = findUserByEmail(emailLower);
 
   if (!user) {
-    alert('No account found with this email. Please check and try again.');
+    createInAppNotification('Error', 'No account found with this email. Please check and try again.', 'error');
     return;
   }
 
   // Google users can still reset their password
   if (user.isGoogleUser) {
-    alert(`Password reset instructions have been sent to ${emailLower}\n\n(In a real app, this would send an email with reset link)`);
+    createInAppNotification('Info', `Password reset instructions have been sent to ${emailLower}\n\n(In a real app, this would send an email with reset link)`, 'info');
   } else {
-    alert(`Password reset instructions have been sent to ${emailLower}\n\n(In a real app, this would send an email with reset link)`);
+    createInAppNotification('Info', `Password reset instructions have been sent to ${emailLower}\n\n(In a real app, this would send an email with reset link)`, 'info');
   }
 
   showPage('loginPage');
@@ -869,13 +1311,13 @@ function simulateGoogleSignInFlow(isRegister = false) {
     const googleEmail = emailInput.value.trim();
 
     if (!googleEmail) {
-      alert('Please enter an email address');
+      createInAppNotification('Error', 'Please enter an email address', 'error');
       return;
     }
 
     const emailValidation = validateEmail(googleEmail);
     if (!emailValidation.isValid) {
-      alert(emailValidation.message);
+      createInAppNotification('Error', emailValidation.message, 'error');
       return;
     }
 
@@ -913,8 +1355,19 @@ function simulateGoogleSignInFlow(isRegister = false) {
         loadTasks();
         loadProfilePreview();
         startReminderTimers();
-        startTutorial();
-        alert(`Welcome back ${existingUser.fName}!`);
+        
+        // Check if tutorial should be shown
+        const userKey = emailLower.replace(/[@.]/g, '_');
+        const tutorialSeen = localStorage.getItem(`tasklyTutorialSeen_${userKey}`);
+        
+        if (!tutorialSeen) {
+          // Show tutorial after a short delay
+          setTimeout(() => {
+            startTutorial();
+          }, 1000);
+        }
+        
+        createInAppNotification('Success', `Welcome back ${existingUser.fName}!`, 'success');
       }, 1500);
     } else {
       document.body.removeChild(googleModal);
@@ -1082,7 +1535,7 @@ function createGoogleAccountWithPassword(googleEmail) {
     const confirmPassword = confirmInput.value.trim();
 
     if (!fName) {
-      alert('First name is required');
+      createInAppNotification('Error', 'First name is required', 'error');
       return;
     }
 
@@ -1090,7 +1543,7 @@ function createGoogleAccountWithPassword(googleEmail) {
     const lastName = lName || '';
 
     if (!password || !confirmPassword) {
-      alert('Please fill all password fields');
+      createInAppNotification('Error', 'Please fill all password fields', 'error');
       return;
     }
 
@@ -1102,7 +1555,7 @@ function createGoogleAccountWithPassword(googleEmail) {
     }
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      createInAppNotification('Error', 'Passwords do not match', 'error');
       return;
     }
 
@@ -1134,6 +1587,9 @@ function createGoogleAccountWithPassword(googleEmail) {
     localStorage.setItem(trashKey, JSON.stringify([]));
     localStorage.setItem(themeKey, 'light');
 
+    // Remove tutorial seen flag for new Google user
+    localStorage.removeItem(`tasklyTutorialSeen_${googleEmail.replace(/[@.]/g, '_')}`);
+
     document.body.removeChild(passwordModal);
     showLoading();
     
@@ -1144,8 +1600,13 @@ function createGoogleAccountWithPassword(googleEmail) {
       loadProfilePreview();
       loadProfilePage();
       startReminderTimers();
-      startTutorial();
-      alert(`Welcome ${fName}! Your account has been created.`);
+      
+      // Show tutorial for new Google user
+      setTimeout(() => {
+        startTutorial();
+      }, 1000);
+      
+      createInAppNotification('Success', `Welcome ${fName}! Your account has been created.`, 'success');
     }, 1500);
   });
 
@@ -1275,7 +1736,10 @@ function loadProfilePage() {
 
     const tasksKey = getUserTasksKey();
     const tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
-    document.getElementById('profileTaskStats').textContent = `${tasks.length} tasks`;
+    const taskStatsEl = document.getElementById('profileTaskStats');
+    if (taskStatsEl) {
+      taskStatsEl.textContent = `${tasks.length} tasks`;
+    }
   }
 }
 
@@ -1317,7 +1781,7 @@ saveEditFull.addEventListener('click', () => {
   const bio = editBioFull.value.trim();
 
   if (!fName || !lName) {
-    alert('First name and last name are required');
+    createInAppNotification('Error', 'First name and last name are required', 'error');
     return;
   }
 
@@ -1334,7 +1798,7 @@ saveEditFull.addEventListener('click', () => {
   const userProfileImgKey = getUserProfileImgKey();
   localStorage.setItem(userProfileImgKey, editProfilePreviewFull.src);
 
-  alert('Profile updated successfully!');
+  createInAppNotification('Success', 'Profile updated successfully!', 'success');
 
   // Refresh all profile displays
   loadProfilePreview(); // Update dashboard popup
@@ -1507,33 +1971,99 @@ function openEditEmailModal() {
     });
 
     document.body.removeChild(modal);
-    alert('Email updated successfully! All your data has been migrated.');
+    createInAppNotification('Success', 'Email updated successfully! All your data has been migrated.', 'success');
     loadProfilePage();
   });
 }
 
-/* ================== NOTIFICATIONS ================== */
+/* ================== NOTIFICATIONS PANEL ================== */
 const notifyIcon = document.getElementById('notifyIcon');
 const notifyPanel = document.getElementById('notifyPanel');
+
 function notifyPanelOpen() {
   const list = document.getElementById('notifyList');
   const remindersKey = getUserRemindersKey();
   const rems = JSON.parse(localStorage.getItem(remindersKey) || '[]');
-  list.innerHTML = rems.length ? rems.slice().reverse().map(r => `
-    <div class="pop-item">${r.title} — ${new Date(r.reminderAt).toLocaleString()}</div>
-  `).join('') : '<div style="color:#666">No reminders</div>';
+  
+  if (!list) return;
+  
+  // Sort by time (soonest first)
+  const sortedRems = [...rems].sort((a, b) => a.reminderAt - b.reminderAt);
+  
+  list.innerHTML = sortedRems.length ? sortedRems.map(r => {
+    const time = new Date(r.reminderAt);
+    const timeStr = time.toLocaleString();
+    const isPast = time < new Date();
+    const timeUntil = time - Date.now();
+    let timeText = timeStr;
+    
+    if (timeUntil > 0 && timeUntil < 24 * 60 * 60 * 1000) {
+      // If within 24 hours, show relative time
+      const hours = Math.floor(timeUntil / (60 * 60 * 1000));
+      const minutes = Math.floor((timeUntil % (60 * 60 * 1000)) / (60 * 1000));
+      timeText = `in ${hours}h ${minutes}m`;
+    }
+    
+    return `
+      <div class="pop-item ${isPast ? 'past' : ''}">
+        <div class="reminder-title">${r.title}</div>
+        <div class="reminder-time">${timeText} ${isPast ? '(Past)' : ''}</div>
+        <button class="clear-single-reminder" data-index="${r.index}">×</button>
+      </div>
+    `;
+  }).join('') : '<div style="color:#666; padding: 20px; text-align: center;">No reminders</div>';
+  
   notifyPanel.classList.add('show');
+  
+  // Add event listeners to clear buttons
+  list.querySelectorAll('.clear-single-reminder').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const index = parseInt(btn.dataset.index);
+      clearSingleReminder(index);
+    });
+  });
 }
-function notifyPanelClose() { notifyPanel.classList.remove('show'); }
+
+function notifyPanelClose() { 
+  notifyPanel.classList.remove('show'); 
+}
+
 notifyIcon.addEventListener('click', (e) => {
   e.stopPropagation();
   profilePanel.classList.remove('show');
   notifyPanel.classList.contains('show') ? notifyPanelClose() : notifyPanelOpen();
 });
+
+// Clear single reminder
+function clearSingleReminder(taskIndex) {
+  const tasksKey = getUserTasksKey();
+  const tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
+  
+  if (tasks[taskIndex]) {
+    tasks[taskIndex].reminder = null;
+    localStorage.setItem(tasksKey, JSON.stringify(tasks));
+    persistReminders();
+    scheduleAllReminders();
+    notifyPanelOpen();
+    createInAppNotification('Reminder Cleared', 'Reminder has been cleared', 'info');
+  }
+}
+
 document.getElementById('clearNotifications').addEventListener('click', () => {
   const remindersKey = getUserRemindersKey();
   localStorage.setItem(remindersKey, JSON.stringify([]));
-  document.getElementById('notifyList').innerHTML = '<div style="color:#666">All reminders cleared</div>';
+  
+  // Also clear reminders from tasks
+  const tasksKey = getUserTasksKey();
+  const tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
+  tasks.forEach(task => {
+    task.reminder = null;
+  });
+  localStorage.setItem(tasksKey, JSON.stringify(tasks));
+  
+  document.getElementById('notifyList').innerHTML = '<div style="color:#666; padding: 20px; text-align: center;">All reminders cleared</div>';
+  createInAppNotification('All Cleared', 'All reminders have been cleared', 'success');
 });
 
 /* close panels on outside click */
@@ -1655,7 +2185,7 @@ saveTaskBtn.addEventListener('click', () => {
   const customMin = taskReminderCustom.value ? parseInt(taskReminderCustom.value, 10) : null;
 
   if (!title || !desc || !date || !time || !priority || !category) {
-    alert('Please fill all fields');
+    createInAppNotification('Error', 'Please fill all fields', 'error');
     return;
   }
 
@@ -1693,6 +2223,9 @@ saveTaskBtn.addEventListener('click', () => {
   hideAddCard();
   renderTasksList(tasks);
   updateDashboardStats();
+  
+  const action = editingIndex === null ? 'added' : 'updated';
+  createInAppNotification('Task Saved', `Task "${title}" ${action} successfully!`, 'success');
 });
 
 function persistReminders() {
@@ -1712,8 +2245,10 @@ function persistReminders() {
 }
 
 function clearAllTimers() {
-  reminderTimers.forEach(t => clearTimeout(t.id));
-  reminderTimers = [];
+  scheduledReminders.forEach(timer => {
+    if (timer) clearTimeout(timer);
+  });
+  scheduledReminders.clear();
 }
 
 function scheduleAllReminders() {
@@ -1724,19 +2259,37 @@ function scheduleAllReminders() {
   tasks.forEach((t, idx) => {
     if (t.reminder && t.reminder.reminderAt) {
       const ms = t.reminder.reminderAt - Date.now();
-      if (ms > 0) {
-        const id = setTimeout(() => {
-          alert('Reminder — ' + t.title + ' at ' + new Date(t.reminder.reminderAt).toLocaleString());
-          notifyPanelOpen();
-          reminderTimers = reminderTimers.filter(x => x.id !== id);
+      if (ms > 0 && ms < 7 * 24 * 60 * 60 * 1000) { // Only schedule reminders within 7 days
+        const timer = setTimeout(() => {
+          showReminderNotification(t.title, t.reminder.reminderAt);
+          scheduledReminders.delete(idx);
         }, ms);
-        reminderTimers.push({ id, index: idx });
+        scheduledReminders.set(idx, timer);
       }
     }
   });
 }
 
-function startReminderTimers() { scheduleAllReminders(); }
+function startReminderTimers() { 
+  scheduleAllReminders(); 
+  
+  // Also check for reminders every minute
+  setInterval(() => {
+    const tasksKey = getUserTasksKey();
+    const tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
+    
+    tasks.forEach((t, idx) => {
+      if (t.reminder && t.reminder.reminderAt) {
+        const ms = t.reminder.reminderAt - Date.now();
+        // If reminder is due (within 1 minute in the past) and not already scheduled
+        if (ms <= 0 && ms > -60000 && !scheduledReminders.has(idx)) {
+          showReminderNotification(t.title, t.reminder.reminderAt);
+          scheduledReminders.set(idx, null); // Mark as triggered
+        }
+      }
+    });
+  }, 60000); // Check every minute
+}
 
 /* ================== TASK FILTERING ================== */
 let currentFilter = 'all';
@@ -1793,6 +2346,15 @@ function applyFilters() {
 
 /* ================== UPDATE DASHBOARD STATS ================== */
 function updateDashboardStats() {
+  const totalTasksEl = document.getElementById('totalTasks');
+  const pendingTasksEl = document.getElementById('pendingTasks');
+  const completedTasksEl = document.getElementById('completedTasks');
+  
+  // Check if elements exist before updating
+  if (!totalTasksEl || !pendingTasksEl || !completedTasksEl) {
+    return; // Elements don't exist yet (probably not on dashboard page)
+  }
+  
   const tasksKey = getUserTasksKey();
   const tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
   
@@ -1800,9 +2362,9 @@ function updateDashboardStats() {
   const pendingTasks = tasks.filter(task => task.status === 'pending').length;
   const completedTasks = tasks.filter(task => task.status === 'completed').length;
   
-  document.getElementById('totalTasks').textContent = totalTasks;
-  document.getElementById('pendingTasks').textContent = pendingTasks;
-  document.getElementById('completedTasks').textContent = completedTasks;
+  totalTasksEl.textContent = totalTasks;
+  pendingTasksEl.textContent = pendingTasks;
+  completedTasksEl.textContent = completedTasks;
 }
 
 /* ================== SWIPE HANDLERS ================== */
@@ -1823,7 +2385,7 @@ function doDeleteTask(index) {
   updateDashboardStats();
 
   // Show notification
-  alert(`Task "${taskToDelete.title}" deleted permanently.`);
+  createInAppNotification('Task Deleted', `Task "${taskToDelete.title}" deleted permanently.`, 'error');
 }
 
 function archiveTask(index) {
@@ -1853,7 +2415,7 @@ function archiveTask(index) {
   updateDashboardStats();
 
   // Show notification
-  alert(`Task "${taskToArchive.title}" archived. You can restore it from the Archive page.`);
+  createInAppNotification('Task Archived', `Task "${taskToArchive.title}" archived. You can restore it from the Archive page.`, 'info');
 }
 
 /* ================== TASK CHECKBOX HANDLER ================== */
@@ -1862,7 +2424,8 @@ function toggleTaskStatus(index) {
   const tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
   
   if (tasks[index]) {
-    tasks[index].status = tasks[index].status === 'completed' ? 'pending' : 'completed';
+    const wasCompleted = tasks[index].status === 'completed';
+    tasks[index].status = wasCompleted ? 'pending' : 'completed';
     localStorage.setItem(tasksKey, JSON.stringify(tasks));
     
     // Add completion animation class
@@ -1876,6 +2439,10 @@ function toggleTaskStatus(index) {
     
     renderTasksList(tasks);
     updateDashboardStats();
+    
+    // Show notification
+    const action = wasCompleted ? 'marked as pending' : 'completed';
+    createInAppNotification('Task Updated', `Task "${tasks[index].title}" ${action}!`, 'success');
   }
 }
 
@@ -2206,7 +2773,7 @@ function restoreFromTrash(index) {
   persistReminders();
   scheduleAllReminders();
 
-  alert(`Task "${taskToRestore.title}" restored successfully!`);
+  createInAppNotification('Task Restored', `Task "${taskToRestore.title}" restored successfully!`, 'success');
 }
 
 function deletePermanently(index) {
@@ -2227,7 +2794,7 @@ function deletePermanently(index) {
   // Update display
   loadTrashPage();
 
-  alert(`Task "${taskToDelete.title}" permanently deleted.`);
+  createInAppNotification('Task Deleted', `Task "${taskToDelete.title}" permanently deleted.`, 'error');
 }
 
 // Initialize trash buttons when DOM is loaded
@@ -2240,7 +2807,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const trash = JSON.parse(localStorage.getItem(trashKey) || '[]');
 
       if (!trash.length) {
-        alert('No tasks to restore.');
+        createInAppNotification('Info', 'No tasks to restore.', 'info');
         return;
       }
 
@@ -2268,7 +2835,7 @@ document.addEventListener('DOMContentLoaded', function () {
       persistReminders();
       scheduleAllReminders();
 
-      alert(`All ${trash.length} tasks restored successfully!`);
+      createInAppNotification('All Restored', `All ${trash.length} tasks restored successfully!`, 'success');
     });
   }
 
@@ -2280,7 +2847,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const trash = JSON.parse(localStorage.getItem(trashKey) || '[]');
 
       if (!trash.length) {
-        alert('Trash is already empty.');
+        createInAppNotification('Info', 'Trash is already empty.', 'info');
         return;
       }
 
@@ -2294,7 +2861,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Update display
       loadTrashPage();
 
-      alert(`All ${trash.length} tasks permanently deleted.`);
+      createInAppNotification('All Deleted', `All ${trash.length} tasks permanently deleted.`, 'error');
     });
   }
 });
@@ -2322,6 +2889,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Start with light theme for auth pages
   forceLightTheme();
+  
+  // Initialize notification system
+  initNotificationSystem();
+  
   setupFilters();
   updateDashboardStats();
   
@@ -2510,38 +3081,79 @@ function showTutorialStep(step) {
 }
 
 function startTutorial() {
-  // Check if user has seen tutorial before
-  const hasSeenTutorial = localStorage.getItem('tasklyTutorialSeen');
-
-  if (!hasSeenTutorial) {
-    // Wait a moment for dashboard to load, then show tutorial
+  const currentUser = JSON.parse(localStorage.getItem('tasklyUser') || '{}');
+  if (!currentUser.email) return;
+  
+  const userKey = currentUser.email.replace(/[@.]/g, '_');
+  const tutorialSeen = localStorage.getItem(`tasklyTutorialSeen_${userKey}`);
+  
+  // Show tutorial only if user hasn't seen it before
+  if (!tutorialSeen) {
     setTimeout(() => {
-      showTutorialStep(0);
-      tutorialOverlay.classList.add('show');
+      if (tutorialOverlay && tutorialSteps) {
+        showTutorialStep(0);
+        tutorialOverlay.classList.add('show');
+      }
     }, 1000);
   }
 }
 
+function resetTutorial() {
+  const currentUser = JSON.parse(localStorage.getItem('tasklyUser') || '{}');
+  if (!currentUser.email) return;
+  
+  const userKey = currentUser.email.replace(/[@.]/g, '_');
+  localStorage.removeItem(`tasklyTutorialSeen_${userKey}`);
+  createInAppNotification('Tutorial Reset', 'Tutorial will show on next login.', 'success');
+}
+
 function endTutorial() {
-  tutorialOverlay.classList.remove('show');
-  localStorage.setItem('tasklyTutorialSeen', 'true');
+  const currentUser = JSON.parse(localStorage.getItem('tasklyUser') || '{}');
+  if (currentUser.email) {
+    const userKey = currentUser.email.replace(/[@.]/g, '_');
+    localStorage.setItem(`tasklyTutorialSeen_${userKey}`, 'true');
+  }
+  
+  if (tutorialOverlay) {
+    tutorialOverlay.classList.remove('show');
+  }
 }
 
 // Event listeners for tutorial
-nextTutorialBtn.addEventListener('click', () => {
-  if (currentStep < totalSteps - 1) {
-    showTutorialStep(currentStep + 1);
-  } else {
-    endTutorial();
-  }
-});
+if (nextTutorialBtn) {
+  nextTutorialBtn.addEventListener('click', () => {
+    if (currentStep < totalSteps - 1) {
+      showTutorialStep(currentStep + 1);
+    } else {
+      endTutorial();
+    }
+  });
+}
 
-skipTutorialBtn.addEventListener('click', endTutorial);
-closeTutorialBtn.addEventListener('click', endTutorial);
+if (skipTutorialBtn) {
+  skipTutorialBtn.addEventListener('click', endTutorial);
+}
+
+if (closeTutorialBtn) {
+  closeTutorialBtn.addEventListener('click', endTutorial);
+}
 
 // Close tutorial when clicking outside content
-tutorialOverlay.addEventListener('click', (e) => {
-  if (e.target === tutorialOverlay) {
-    endTutorial();
+if (tutorialOverlay) {
+  tutorialOverlay.addEventListener('click', (e) => {
+    if (e.target === tutorialOverlay) {
+      endTutorial();
+    }
+  });
+}
+
+// Add reset tutorial button to settings page
+document.addEventListener('DOMContentLoaded', function() {
+  const resetTutorialBtn = document.getElementById('resetTutorialBtn');
+  if (resetTutorialBtn) {
+    resetTutorialBtn.addEventListener('click', resetTutorial);
   }
 });
+
+// Make resetTutorial function available globally
+window.resetTutorial = resetTutorial;
